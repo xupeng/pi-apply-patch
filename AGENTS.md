@@ -23,7 +23,7 @@ Conventions for human contributors and AI agents working on this repository.
 - No Bun APIs. Runtime is Node only.
 - This extension registers the `apply_patch` tool and only activates it for OpenAI GPT-family models and DeepSeek models (id prefix `deepseek-`) exposed through `openai-responses` / `openai-codex-responses` APIs.
 - Keep the tool schema, grammar, and descriptions byte-for-byte compatible with Codex unless intentionally updating the golden source.
-- No dependency on pi-coding-agent internal modules outside the documented public extension API in `@mariozechner/pi-coding-agent`.
+- No dependency on pi-coding-agent internal modules outside the documented public extension API in `@earendil-works/pi-coding-agent`.
 
 ## Don'ts
 

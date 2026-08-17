@@ -1,5 +1,5 @@
 import { mkdir, readFile, realpath, rm, stat } from "node:fs/promises";
-import path from "node:path";
+import * as path from "node:path";
 import type { AgentToolResult } from "@earendil-works/pi-agent-core";
 import type { Model } from "@earendil-works/pi-ai";
 import {
@@ -13,7 +13,7 @@ import {
 import { Box, Container, Spacer, Text } from "@earendil-works/pi-tui";
 import * as Diff from "diff";
 import { Type } from "typebox";
-import { writeFileAtomic } from "./write-file-atomic.js";
+import { hasErrorCode, writeFileAtomic } from "./write-file-atomic.js";
 
 const APPLY_PATCH_PARAMS = Type.Object({
 	input: Type.String({
@@ -173,10 +173,6 @@ type ApplyPatchTheme = {
 	bold: (text: string) => string;
 	inverse: (text: string) => string;
 };
-
-function hasErrorCode(error: unknown, code: string): boolean {
-	return Boolean(error && typeof error === "object" && "code" in error && error.code === code);
-}
 
 const APPLY_PATCH_MODEL_ID_PREFIXES = ["gpt-", "deepseek-"] as const;
 const GPT_APPLY_PATCH_PROVIDERS = new Set(["openai", "openai-codex", "azure-openai-responses", "github-copilot"]);
@@ -344,6 +340,10 @@ export type ApplyPatchCandidateModel = Pick<Model<string>, "provider" | "id"> & 
 export function isApplyPatchCapableModel(model: ApplyPatchCandidateModel | undefined): boolean {
 	if (!model || !APPLY_PATCH_MODEL_ID_PREFIXES.some((prefix) => model.id.startsWith(prefix))) {
 		return false;
+	}
+
+	if (model.id.startsWith("deepseek-")) {
+		return model.api !== undefined && GPT_APPLY_PATCH_APIS.has(model.api);
 	}
 
 	return (

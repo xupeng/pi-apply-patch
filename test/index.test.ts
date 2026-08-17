@@ -1131,6 +1131,9 @@ EOF`;
 		expect(
 			isApplyPatchCapableModel({ provider: "my-proxy", id: "deepseek-v4-flash", api: "openai-codex-responses" }),
 		).toBe(true);
+		expect(isApplyPatchCapableModel({ provider: "openai", id: "deepseek-custom", api: "openai-completions" })).toBe(
+			false,
+		);
 		expect(isApplyPatchCapableModel({ provider: "openai", id: "o1" })).toBe(false);
 		expect(isApplyPatchCapableModel({ provider: "anthropic", id: "gpt-5" })).toBe(false);
 		expect(isApplyPatchCapableModel({ provider: "my-proxy", id: "claude-sonnet", api: "openai-responses" })).toBe(

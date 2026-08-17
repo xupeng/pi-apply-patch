@@ -44,13 +44,13 @@ The package targets the [`pi`](https://github.com/badlogic/pi-mono/tree/main/pac
 
 ```bash
 # 1. From npm (once published)
-pi install npm:@code-yeongyu/pi-apply-patch
+pi install npm:pi-apply-patch
 
 # 2. From git
-pi install git:github.com/code-yeongyu/pi-apply-patch
+pi install git:github.com/xupeng/pi-apply-patch
 
 # 3. Manual placement
-git clone https://github.com/code-yeongyu/pi-apply-patch ~/.pi/agent/extensions/pi-apply-patch
+git clone https://github.com/xupeng/pi-apply-patch ~/.pi/agent/extensions/pi-apply-patch
 cd ~/.pi/agent/extensions/pi-apply-patch && npm install
 
 # 4. Dev / one-shot test
@@ -75,6 +75,8 @@ The test suite uses vitest. TypeScript is strict, Node-only, and uses ESM import
 ## Origin
 
 Ported from `packages/coding-agent/src/core/extensions/builtin/gpt-apply-patch.ts` in `code-yeongyu/senpi-mono`. The patch grammar and tool descriptions mirror Codex.
+
+This repository is a fork of [`code-yeongyu/pi-apply-patch`](https://github.com/code-yeongyu/pi-apply-patch) with DeepSeek model support added (`deepseek-` id prefix on `openai-responses` / `openai-codex-responses` APIs).
 
 ## License
 

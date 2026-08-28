@@ -1,0 +1,4 @@
+{"file": "src/index.ts", "reason": "apply_patch tool definition, activation predicate, argument normalization"}
+{"file": "test/index.test.ts", "reason": "activation matrix and tool shape tests"}
+{"file": "README.md", "reason": "document provider/API matrix"}
+{"file": "/home/xupeng/.pi/agent/models.json", "reason": "add supportsOpenAIGrammarTools to deepseek/xupeng-ocg, drop xupeng-oneapi-resp"}

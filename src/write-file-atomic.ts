@@ -1,15 +1,19 @@
-import { rename, unlink, writeFile } from "node:fs/promises";
+import { chmod, rename, stat, unlink, writeFile } from "node:fs/promises";
 
 export type AtomicWriteOperations = {
 	writeFile: (filePath: string, content: string, encoding: "utf-8") => Promise<void>;
 	rename: (fromPath: string, toPath: string) => Promise<void>;
 	unlink: (filePath: string) => Promise<void>;
+	stat: (filePath: string) => Promise<{ mode: number }>;
+	chmod: (filePath: string, mode: number) => Promise<void>;
 };
 
 const ATOMIC_WRITE_OPERATIONS: AtomicWriteOperations = {
 	writeFile,
 	rename,
 	unlink,
+	stat,
+	chmod,
 };
 
 export function hasErrorCode(error: unknown, code: string): boolean {
@@ -37,6 +41,21 @@ export async function writeFileAtomic(
 		throw error;
 	}
 	try {
+		// rename replaces the target inode, dropping the original mode (e.g. the
+		// executable bit). Inherit the target's mode bits onto the temp file so
+		// updates preserve permissions. New files (ENOENT) keep umask defaults.
+		let targetMode: number | undefined;
+		try {
+			targetMode = (await operations.stat(absPath)).mode & 0o7777;
+		} catch (error) {
+			if (!hasErrorCode(error, "ENOENT")) {
+				await cleanupTempFile(tempPath, operations);
+				throw error;
+			}
+		}
+		if (targetMode !== undefined) {
+			await operations.chmod(tempPath, targetMode);
+		}
 		await operations.rename(tempPath, absPath);
 	} catch (error) {
 		if (!hasErrorCode(error, "EEXIST")) {

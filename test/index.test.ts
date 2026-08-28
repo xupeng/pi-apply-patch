@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, readdir, readFile, rm, symlink, writeFile } from "node:fs/promises";
+import { chmod, mkdir, mkdtemp, readdir, readFile, rm, stat, symlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import type { ConstrainedSamplingConfig } from "@earendil-works/pi-ai";
 import { afterEach, describe, expect, it } from "vitest";
@@ -1092,6 +1092,13 @@ EOF`;
 			async writeFile() {
 				calls.push("writeFile");
 			},
+			async stat() {
+				calls.push("stat");
+				return { mode: 0o100644 };
+			},
+			async chmod() {
+				calls.push("chmod");
+			},
 			async rename() {
 				renameCount += 1;
 				calls.push(`rename:${renameCount}`);
@@ -1110,7 +1117,55 @@ EOF`;
 		await writeFileAtomic("/tmp/target.txt", "content", operations);
 
 		// then
-		expect(calls).toEqual(["writeFile", "rename:1", "unlink", "rename:2"]);
+		expect(calls).toEqual(["writeFile", "stat", "chmod", "rename:1", "unlink", "rename:2"]);
+	});
+
+	it("#given existing executable file #when updating atomically #then keeps the executable bit", async () => {
+		// given
+		const directory = await createTempDirectory();
+		const targetPath = path.join(directory, "tool.sh");
+		await writeFile(targetPath, "#!/bin/sh\necho before\n", { mode: 0o755 });
+
+		// when
+		await writeFileAtomic(targetPath, "#!/bin/sh\necho after\n");
+
+		// then
+		expect(await readFile(targetPath, "utf-8")).toBe("#!/bin/sh\necho after\n");
+		expect((await stat(targetPath)).mode & 0o777).toBe(0o755);
+	});
+
+	it("#given existing regular file #when updating atomically #then keeps the original mode", async () => {
+		// given
+		const directory = await createTempDirectory();
+		const targetPath = path.join(directory, "readme.txt");
+		await writeFile(targetPath, "before\n", { mode: 0o640 });
+
+		// when
+		await writeFileAtomic(targetPath, "after\n");
+
+		// then
+		expect((await stat(targetPath)).mode & 0o777).toBe(0o640);
+	});
+
+	it("#given executable file #when applying update patch #then keeps the executable bit", async () => {
+		// given
+		const directory = await createTempDirectory();
+		const scriptPath = path.join(directory, "tool.sh");
+		await writeFile(scriptPath, "#!/bin/sh\necho before\n", "utf-8");
+		await chmod(scriptPath, 0o755);
+		const patch = `*** Begin Patch
+*** Update File: tool.sh
+@@
+-echo before
++echo after
+*** End Patch`;
+
+		// when
+		await applyPatch(directory, patch);
+
+		// then
+		expect(await readFile(scriptPath, "utf-8")).toBe("#!/bin/sh\necho after\n");
+		expect((await stat(scriptPath)).mode & 0o777).toBe(0o755);
 	});
 
 	it("#given patch text #when extracting paths #then returns touched files", () => {

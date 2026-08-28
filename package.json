@@ -1,7 +1,7 @@
 {
 	"name": "pi-apply-patch",
 	"version": "0.1.2",
-	"description": "Codex-style apply_patch tool extension for the pi coding agent. Registers a freeform grammar patch tool for OpenAI GPT models and applies patches with Node path resolution.",
+	"description": "Codex-style apply_patch tool extension for the pi coding agent. Registers a grammar-constrained patch tool for OpenAI GPT and DeepSeek models and applies patches with Node path resolution.",
 	"type": "module",
 	"license": "MIT",
 	"homepage": "https://github.com/xupeng/pi-apply-patch",
@@ -47,6 +47,10 @@
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.5.5",
+		"@earendil-works/pi-agent-core": "^0.84.3",
+		"@earendil-works/pi-ai": "^0.84.3",
+		"@earendil-works/pi-coding-agent": "^0.84.3",
+		"@earendil-works/pi-tui": "^0.84.3",
 		"@types/node": "^26.1.1",
 		"@typescript/native-preview": "^7.0.0-dev.20260707.2",
 		"typescript": "7.0.2",

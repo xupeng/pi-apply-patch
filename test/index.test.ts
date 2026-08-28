@@ -1,5 +1,6 @@
 import { mkdir, mkdtemp, readdir, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import path from "node:path";
+import type { ConstrainedSamplingConfig } from "@earendil-works/pi-ai";
 import { afterEach, describe, expect, it } from "vitest";
 import {
 	APPLY_PATCH_FREEFORM_DESCRIPTION,
@@ -9,7 +10,6 @@ import {
 	applyPatchDetailed,
 	createApplyPatchTool,
 	extractPatchedPaths,
-	type FreeformToolFormat,
 	isApplyPatchCapableModel,
 	isOpenAIGptModel,
 	PatchParseError,
@@ -102,16 +102,16 @@ afterEach(async () => {
 });
 
 describe("pi-apply-patch", () => {
-	it("#given extension #when registered #then exposes codex freeform apply_patch tool", () => {
+	it("#given extension #when registered #then exposes apply_patch tool with grammar constrained sampling", () => {
 		// given
 		let capturedToolName: string | undefined;
 		let capturedDescription: string | undefined;
-		let capturedFreeform: FreeformToolFormat | undefined;
+		let capturedSampling: ConstrainedSamplingConfig | undefined;
 		const extensionApi = {
 			registerTool(tool: ReturnType<typeof createApplyPatchTool>) {
 				capturedToolName = tool.name;
 				capturedDescription = tool.description;
-				capturedFreeform = tool.freeform;
+				capturedSampling = tool.constrainedSampling;
 			},
 			on() {},
 			getActiveTools() {
@@ -126,10 +126,26 @@ describe("pi-apply-patch", () => {
 		// then
 		expect(capturedToolName).toBe("apply_patch");
 		expect(capturedDescription).toBe(APPLY_PATCH_FREEFORM_DESCRIPTION);
-		expect(capturedFreeform).toEqual({
+		expect(capturedSampling).toEqual({
 			type: "grammar",
-			syntax: "lark",
-			definition: APPLY_PATCH_LARK_GRAMMAR,
+			variants: {
+				openai_lark: APPLY_PATCH_LARK_GRAMMAR,
+			},
+		});
+	});
+
+	it("#given markdown-fenced patch argument #when preparing arguments #then strips the fence", () => {
+		// given
+		const tool = createApplyPatchTool();
+
+		// when
+		const prepared = tool.prepareArguments?.({
+			input: "```patch\n*** Begin Patch\n*** Update File: a.txt\n@@\n-old\n+new\n*** End Patch\n```",
+		});
+
+		// then
+		expect(prepared).toEqual({
+			input: "*** Begin Patch\n*** Update File: a.txt\n@@\n-old\n+new\n*** End Patch\n",
 		});
 	});
 
@@ -1114,7 +1130,7 @@ EOF`;
 		expect(extractPatchedPaths(patch)).toEqual(["src/app.ts", "src/new.ts", "src/old.ts", "src/moved.ts"]);
 	});
 
-	it("#given model metadata #when checking apply_patch activation #then matches GPT and DeepSeek models on Responses APIs", () => {
+	it("#given model metadata #when checking apply_patch activation #then matches GPT and any DeepSeek model", () => {
 		expect(isApplyPatchCapableModel({ provider: "openai", id: "gpt-5" })).toBe(true);
 		expect(isApplyPatchCapableModel({ provider: "openai-codex", id: "gpt-5.5" })).toBe(true);
 		expect(isApplyPatchCapableModel({ provider: "my-proxy", id: "gpt-5", api: "openai-responses" })).toBe(true);
@@ -1132,8 +1148,16 @@ EOF`;
 			isApplyPatchCapableModel({ provider: "my-proxy", id: "deepseek-v4-flash", api: "openai-codex-responses" }),
 		).toBe(true);
 		expect(isApplyPatchCapableModel({ provider: "openai", id: "deepseek-custom", api: "openai-completions" })).toBe(
-			false,
+			true,
 		);
+		expect(
+			isApplyPatchCapableModel({
+				provider: "xupeng-oneapi",
+				id: "deepseek-v4-flash-0731",
+				api: "openai-completions",
+			}),
+		).toBe(true);
+		expect(isApplyPatchCapableModel({ provider: "one-api", id: "deepseek-v4-pro" })).toBe(true);
 		expect(isApplyPatchCapableModel({ provider: "openai", id: "o1" })).toBe(false);
 		expect(isApplyPatchCapableModel({ provider: "anthropic", id: "gpt-5" })).toBe(false);
 		expect(isApplyPatchCapableModel({ provider: "my-proxy", id: "claude-sonnet", api: "openai-responses" })).toBe(
@@ -1143,7 +1167,7 @@ EOF`;
 			false,
 		);
 		expect(isApplyPatchCapableModel({ provider: "my-proxy", id: "deepseek-chat", api: "anthropic-messages" })).toBe(
-			false,
+			true,
 		);
 
 		// legacy alias stays consistent

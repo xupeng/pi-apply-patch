@@ -21,7 +21,7 @@ Conventions for human contributors and AI agents working on this repository.
 ## Constraints
 
 - No Bun APIs. Runtime is Node only.
-- This extension registers the `apply_patch` tool and only activates it for OpenAI GPT-family models and DeepSeek models (id prefix `deepseek-`) exposed through `openai-responses` / `openai-codex-responses` APIs.
+- This extension registers the `apply_patch` tool and activates it for OpenAI GPT-family models and any DeepSeek model (id prefix `deepseek-`). Native Responses models get grammar-constrained sampling via `constrainedSampling`; Chat Completion models fall back to the plain function tool with an `input` string.
 - Keep the tool schema, grammar, and descriptions byte-for-byte compatible with Codex unless intentionally updating the golden source.
 - No dependency on pi-coding-agent internal modules outside the documented public extension API in `@earendil-works/pi-coding-agent`.
 

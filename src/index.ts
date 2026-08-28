@@ -1,7 +1,7 @@
 import { mkdir, readFile, realpath, rm, stat } from "node:fs/promises";
 import * as path from "node:path";
 import type { AgentToolResult } from "@earendil-works/pi-agent-core";
-import type { Model } from "@earendil-works/pi-ai";
+import type { ConstrainedSamplingConfig, Model } from "@earendil-works/pi-ai";
 import {
 	defineTool,
 	type ExtensionAPI,
@@ -33,14 +33,8 @@ type PatchChunk = {
 	isEndOfFile: boolean;
 };
 
-export type FreeformToolFormat = {
-	type: "grammar";
-	syntax: "lark";
-	definition: string;
-};
-
 type ApplyPatchToolDefinition = ToolDefinition<typeof APPLY_PATCH_PARAMS, ApplyPatchToolDetails | undefined> & {
-	freeform: FreeformToolFormat;
+	constrainedSampling: ConstrainedSamplingConfig;
 };
 
 export type ApplyPatchExtensionAPI = Pick<ExtensionAPI, "on" | "getActiveTools" | "setActiveTools"> & {
@@ -296,15 +290,20 @@ export function truncatePreview(text: string): string {
 	return enforcePreviewCharLimit(previewText);
 }
 
+function stripPatchFence(input: string): string {
+	const fenceMatch = input.match(/^```(?:patch|diff)?\s*\n([\s\S]*?)```\s*$/);
+	return fenceMatch?.[1] ?? input;
+}
+
 function normalizeApplyPatchArguments(args: unknown): ApplyPatchParams {
 	if (typeof args === "string") {
-		return { input: args };
+		return { input: stripPatchFence(args) };
 	}
 
 	if (args && typeof args === "object" && "input" in args) {
 		const input = (args as { input?: unknown }).input;
 		if (typeof input === "string") {
-			return { input };
+			return { input: stripPatchFence(input) };
 		}
 	}
 
@@ -313,7 +312,7 @@ function normalizeApplyPatchArguments(args: unknown): ApplyPatchParams {
 
 const STANDARD_EDIT_TOOL_NAMES = ["edit", "write"] as const;
 export const APPLY_PATCH_FREEFORM_DESCRIPTION =
-	"Use the `apply_patch` tool to edit files. This is a FREEFORM tool, so do not wrap the patch in JSON.";
+	"Use the `apply_patch` tool to edit files. Provide the complete Codex patch envelope (`*** Begin Patch` ... `*** End Patch`) covering all files in one call. If this tool is exposed as a freeform grammar tool, output the patch directly without JSON wrapping; otherwise pass it as the string value of the `input` parameter.";
 export const APPLY_PATCH_LARK_GRAMMAR = `start: begin_patch hunk+ end_patch
 begin_patch: "*** Begin Patch" LF
 end_patch: "*** End Patch" LF?
@@ -343,7 +342,9 @@ export function isApplyPatchCapableModel(model: ApplyPatchCandidateModel | undef
 	}
 
 	if (model.id.startsWith("deepseek-")) {
-		return model.api !== undefined && GPT_APPLY_PATCH_APIS.has(model.api);
+		// DeepSeek models always activate apply_patch: native Responses models use
+		// grammar-constrained sampling, Chat Completion models use the function tool.
+		return true;
 	}
 
 	return (
@@ -1401,7 +1402,10 @@ export function createApplyPatchTool(): ApplyPatchToolDefinition {
 		promptSnippet: "Apply Codex-format file patches with apply_patch",
 		promptGuidelines: [
 			"Use apply_patch for file edits instead of mutating files through bash, Python scripts, heredocs, or shell redirection.",
+			"Make one apply_patch call that covers all files and hunks instead of splitting edits across many write/edit calls.",
+			"When apply_patch is exposed as a function tool, pass the patch as the string value of the input parameter, wrapped in the Codex envelope (*** Begin Patch ... *** End Patch).",
 			"After apply_patch succeeds, do not re-read the edited files just to confirm the patch applied.",
+			"When apply_patch fails, re-read only the files listed in its recovery instructions, then retry with an updated patch.",
 		],
 		async execute(
 			_toolCallId,
@@ -1537,11 +1541,12 @@ export function createApplyPatchTool(): ApplyPatchToolDefinition {
 	});
 
 	return Object.assign(tool, {
-		freeform: {
+		constrainedSampling: {
 			type: "grammar",
-			syntax: "lark",
-			definition: APPLY_PATCH_LARK_GRAMMAR,
-		} satisfies FreeformToolFormat,
+			variants: {
+				openai_lark: APPLY_PATCH_LARK_GRAMMAR,
+			},
+		} satisfies ConstrainedSamplingConfig,
 	});
 }
 

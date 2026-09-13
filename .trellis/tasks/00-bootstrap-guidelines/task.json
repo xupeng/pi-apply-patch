@@ -21,9 +21,14 @@
   "children": [],
   "parent": null,
   "relatedFiles": [
-    ".trellis/spec/backend/",
-    ".trellis/spec/frontend/"
+    ".trellis/spec/extension/index.md",
+    ".trellis/spec/extension/directory-structure.md",
+    ".trellis/spec/extension/tool-contract.md",
+    ".trellis/spec/extension/patch-application.md",
+    ".trellis/spec/extension/error-handling.md",
+    ".trellis/spec/extension/testing-guidelines.md",
+    ".trellis/spec/extension/quality-guidelines.md"
   ],
-  "notes": "First-time setup task created by trellis init (fullstack project)",
+  "notes": "Spec reshaped for a single-package pi extension: removed the inapplicable backend/frontend layers and wrote one extension/ layer. Spec files are backed by src/index.ts, src/write-file-atomic.ts, test/index.test.ts, test/render.test.ts, package.json, tsconfig.json, biome.json, vitest.config.ts, and .github/workflows/ci.yml.",
   "meta": {}
 }

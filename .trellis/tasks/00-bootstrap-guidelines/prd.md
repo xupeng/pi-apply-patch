@@ -21,36 +21,28 @@ the rest conversationally.
 
 ## Status (update the checkboxes as you complete each item)
 
-- [ ] Fill backend guidelines
-- [ ] Fill frontend guidelines
-- [ ] Add code examples
+- [x] Fill extension guidelines
+- [x] Remove the non-applicable backend/frontend layers
+- [x] Add real code examples from `src/` and `test/`
 
 ---
 
 ## Spec files to populate
 
 
-### Backend guidelines
+### Extension guidelines
 
-| File | What to document |
-|------|------------------|
-| `.trellis/spec/backend/directory-structure.md` | Where different file types go (routes, services, utils) |
-| `.trellis/spec/backend/database-guidelines.md` | ORM, migrations, query patterns, naming conventions |
-| `.trellis/spec/backend/error-handling.md` | How errors are caught, logged, and returned |
-| `.trellis/spec/backend/logging-guidelines.md` | Log levels, format, what to log |
-| `.trellis/spec/backend/quality-guidelines.md` | Code review standards, testing requirements |
+`pi-apply-patch` is a single-package pi extension with no backend or frontend layer, so the spec tree uses one `extension/` layer.
 
-
-### Frontend guidelines
-
-| File | What to document |
-|------|------------------|
-| `.trellis/spec/frontend/directory-structure.md` | Component/page/hook organization |
-| `.trellis/spec/frontend/component-guidelines.md` | Component patterns, props conventions |
-| `.trellis/spec/frontend/hook-guidelines.md` | Custom hook naming, patterns |
-| `.trellis/spec/frontend/state-management.md` | State library, patterns, what goes where |
-| `.trellis/spec/frontend/type-safety.md` | TypeScript conventions, type organization |
-| `.trellis/spec/frontend/quality-guidelines.md` | Linting, testing, accessibility |
+| File | What it documents |
+|------|-------------------|
+| `.trellis/spec/extension/index.md` | Navigation and the pre-development checklist |
+| `.trellis/spec/extension/directory-structure.md` | `src/index.ts` vs `src/write-file-atomic.ts`, `test/` layout, no build output, ESM `.js` imports, file-creation bar |
+| `.trellis/spec/extension/tool-contract.md` | Codex-compatible schema/grammar/description, two exposure modes, argument normalization, `promptSnippet`/`promptGuidelines`, model gating, toolset swapping |
+| `.trellis/spec/extension/patch-application.md` | Envelope parsing, `seekSequence` fuzz tiers, `replaceChunks`, atomic writes, mutation queues, partial success and recovery instructions |
+| `.trellis/spec/extension/error-handling.md` | `ApplyPatchError`/`PatchParseError`/`PatchApplicationError`, `ApplyPatchResult`, `hasErrorCode`, throw-vs-return boundaries, render degradation |
+| `.trellis/spec/extension/testing-guidelines.md` | vitest conventions, naming, real temp directories, test harnesses, `it.each`, change-to-test map |
+| `.trellis/spec/extension/quality-guidelines.md` | `npm test`/`npm run check` gates, CI matrix, strict tsconfig, biome rules, forbidden patterns, dependency and release policy |
 
 
 ### Thinking guides (already populated)

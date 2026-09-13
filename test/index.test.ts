@@ -190,6 +190,23 @@ describe("pi-apply-patch", () => {
 		expect(harness.getActiveTools()).toEqual(["read", "apply_patch"]);
 	});
 
+	it.each(["session_start", "model_select", "before_agent_start"])(
+		"#given CLIProxyAPI GPT model #when %s fires and model switches away #then swaps and restores edit tools",
+		async (eventName) => {
+			const harness = createToolsetTestApi(["read", "bash", "edit", "write", "custom_tool"]);
+			registerApplyPatchExtension(harness.api);
+			const model = { provider: "cliproxyapi", api: "cliproxyapi-codex-responses", id: "gpt-6-astra" };
+
+			await harness.trigger(eventName, model);
+			expect(harness.getActiveTools()).toEqual(["read", "bash", "custom_tool", "apply_patch"]);
+			await harness.trigger(eventName, model);
+			expect(harness.getActiveTools()).toEqual(["read", "bash", "custom_tool", "apply_patch"]);
+
+			await harness.trigger("model_select", { ...model, id: "claude-sonnet-4" });
+			expect(harness.getActiveTools()).toEqual(["read", "bash", "custom_tool", "edit", "write"]);
+		},
+	);
+
 	it("#given DeepSeek model on custom Responses provider #when session starts #then enables apply_patch", async () => {
 		// given
 		const harness = createToolsetTestApi(["read", "edit", "write"]);
@@ -1183,6 +1200,23 @@ EOF`;
 
 		// when / then
 		expect(extractPatchedPaths(patch)).toEqual(["src/app.ts", "src/new.ts", "src/old.ts", "src/moved.ts"]);
+	});
+
+	it.each([
+		[{ provider: "cliproxyapi", api: "cliproxyapi-codex-responses", id: "gpt-6-astra" }, true],
+		[{ provider: "renamed-cliproxy", api: "cliproxyapi-codex-responses", id: "gpt-6-astra" }, true],
+		[{ provider: "cliproxyapi", api: "cliproxyapi-codex-responses", id: "claude-sonnet-4" }, false],
+		[{ provider: "cliproxyapi", api: "openai-completions", id: "gpt-6-astra" }, false],
+		[{ provider: "cliproxyapi", id: "gpt-6-astra" }, false],
+		[{ provider: "my-proxy", api: "custom-codex-responses", id: "gpt-6-astra" }, false],
+		[{ provider: "my-proxy", api: "openai-completions", id: "gpt-6-astra" }, false],
+		[{ provider: "cliproxyapi", api: "cliproxyapi-codex-responses", id: "deepseek-flash" }, true],
+		[{ provider: "cliproxyapi", api: "openai-completions", id: "deepseek-flash" }, true],
+		[{ provider: "cliproxyapi", id: "deepseek-flash" }, true],
+		[{ provider: "cliproxyapi", api: "cliproxyapi-codex-responses", id: "grok-4.6" }, false],
+	])("#given model %j #when checking CLIProxyAPI support #then activation is %s", (model, expected) => {
+		expect(isApplyPatchCapableModel(model)).toBe(expected);
+		expect(isOpenAIGptModel(model)).toBe(expected);
 	});
 
 	it("#given model metadata #when checking apply_patch activation #then matches GPT and any DeepSeek model", () => {

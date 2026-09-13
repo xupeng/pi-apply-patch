@@ -10,6 +10,7 @@ The extension registers one LLM-callable tool: `apply_patch`. The tool accepts C
 |------|--------|
 | OpenAI GPT provider active | replaces `write` and `edit` with `apply_patch` |
 | Custom `openai-responses` GPT provider active | replaces `write` and `edit` with `apply_patch` |
+| CLIProxyAPI GPT model (`api: "cliproxyapi-codex-responses"`, e.g. `gpt-6-astra`) | replaces `write` and `edit` with `apply_patch` |
 | Any DeepSeek model (id prefix `deepseek-`, any provider/API) | replaces `write` and `edit` with `apply_patch` |
 | Non-GPT / non-DeepSeek model active | restores the original `write` and `edit` toolset |
 | Raw freeform patch input | accepted and applied |
@@ -23,7 +24,7 @@ The tool carries pi's `constrainedSampling` grammar config (the Codex patch Lark
 - **Enabled** (native Responses endpoints such as official DeepSeek or OpenCode Go Responses, with `compat.supportsOpenAIGrammarTools: true` in `models.json`): pi exposes `apply_patch` as a custom grammar tool. The model is constrained to output the raw Codex patch text directly (`*** Begin Patch ... *** End Patch`), no JSON wrapping, no escaping errors.
 - **Disabled / absent** (e.g. One API Chat Completions): pi falls back to a plain function tool with a single `input` string parameter. The model calls it with `{ "input": "<patch>" }`.
 
-Custom provider names are supported when the model id starts with `gpt-` or `deepseek-`. For `gpt-` ids, the provider must be allowlisted or the Pi API must be `openai-responses` / `openai-codex-responses`. For `deepseek-` ids, activation is unconditional: native Responses models use grammar-constrained sampling, Chat Completion models use the function tool. For example, `my-proxy/gpt-5`, `opencode-go-responses/deepseek-v4-flash`, or `xupeng-oneapi/deepseek-v4-flash-0731` (Chat Completions) all activate `apply_patch`.
+Custom provider names are supported when the model id starts with `gpt-` or `deepseek-`. For `gpt-` ids, the provider must be allowlisted or the Pi API must be `openai-responses`, `openai-codex-responses`, or `cliproxyapi-codex-responses`. Other custom APIs do not activate GPT models automatically. For `deepseek-` ids, activation is unconditional: native Responses models use grammar-constrained sampling, Chat Completion models use the function tool. For example, `my-proxy/gpt-5`, `opencode-go-responses/deepseek-v4-flash`, or `xupeng-oneapi/deepseek-v4-flash-0731` (Chat Completions) all activate `apply_patch`.
 
 ## Tool
 
@@ -45,7 +46,7 @@ Use this tool to edit files with the Codex patch format.
 
 Pi exposes this as a grammar-constrained tool. Models with `compat.supportsOpenAIGrammarTools` enabled receive an OpenAI custom grammar tool (raw patch text output); other models fall back to a function tool with an `input` string parameter.
 
-Custom provider names are supported when the model id starts with `gpt-` or `deepseek-` and its Pi API is `openai-responses` or `openai-codex-responses`. For example, a model registered as `my-proxy/gpt-5` or `opencode-go-responses/deepseek-v4-flash` with `api: "openai-responses"` activates `apply_patch` without adding the provider name to a hard-coded allowlist.
+Custom provider names are supported for `gpt-` ids when the Pi API is `openai-responses`, `openai-codex-responses`, or `cliproxyapi-codex-responses`; `deepseek-` ids are supported regardless of API. For example, a model registered as `my-proxy/gpt-5` or `opencode-go-responses/deepseek-v4-flash` with `api: "openai-responses"` activates `apply_patch` without adding the provider name to a hard-coded allowlist.
 
 ## Installation
 

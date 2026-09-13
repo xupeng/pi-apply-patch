@@ -170,7 +170,7 @@ type ApplyPatchTheme = {
 
 const APPLY_PATCH_MODEL_ID_PREFIXES = ["gpt-", "deepseek-"] as const;
 const GPT_APPLY_PATCH_PROVIDERS = new Set(["openai", "openai-codex", "azure-openai-responses", "github-copilot"]);
-const GPT_APPLY_PATCH_APIS = new Set(["openai-responses", "openai-codex-responses"]);
+const GPT_APPLY_PATCH_APIS = new Set(["openai-responses", "openai-codex-responses", "cliproxyapi-codex-responses"]);
 export const PATCH_PREVIEW_MAX_LINES = 16;
 export const PATCH_PREVIEW_MAX_CHARS = 4000;
 const PATCH_PREVIEW_HEAD_LINES = 8;

@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
 	APPLY_PATCH_FREEFORM_DESCRIPTION,
 	APPLY_PATCH_LARK_GRAMMAR,
+	ApplyPatchError,
 	type ApplyPatchExtensionAPI,
 	applyPatch,
 	applyPatchDetailed,
@@ -895,6 +896,66 @@ EOF`;
 		await expect(applyPatch(directory, patch)).rejects.toThrow("Failed to find expected lines in broken.txt");
 		expect(await readFile(path.join(directory, "later.txt"), "utf-8")).toBe("before\n");
 	});
+
+	it.each([
+		{ name: "no successful hunks", contents: [], fuzz: 0 },
+		{ name: "exact successes", contents: ["before\n", "before\n"], fuzz: 0 },
+		{ name: "one fuzzy success", contents: ["before   \n"], fuzz: 1 },
+		{ name: "multiple fuzzy successes", contents: ["before   \n", "  before\n"], fuzz: 101 },
+	])(
+		"#given $name before failure #when applying compat api #then preserves successful fuzz",
+		async ({ contents, fuzz }) => {
+			// given
+			const directory = await createTempDirectory();
+			const appliedFiles = contents.map((_, index) => `ok-${index}.txt`);
+			const successfulHunks: string[] = [];
+			for (const [index, content] of contents.entries()) {
+				const filePath = `ok-${index}.txt`;
+				await writeFile(path.join(directory, filePath), content, "utf-8");
+				successfulHunks.push(`*** Update File: ${filePath}\n@@\n-before\n+after`);
+			}
+			await writeFile(path.join(directory, "broken.txt"), "partial   \nline\n", "utf-8");
+			await writeFile(path.join(directory, "later.txt"), "before\n", "utf-8");
+			const patch = [
+				"*** Begin Patch",
+				...successfulHunks,
+				"*** Update File: broken.txt\n@@\n-partial\n+changed\n@@\n-missing\n+changed",
+				"*** Update File: later.txt\n@@\n-before\n+after",
+				"*** End Patch",
+			].join("\n");
+
+			// when
+			const error = await applyPatch(directory, patch).catch((error: unknown) => error);
+
+			// then
+			expect(error).toBeInstanceOf(ApplyPatchError);
+			if (!(error instanceof ApplyPatchError)) throw new Error("Expected ApplyPatchError");
+			expect(error.result).toEqual({
+				summaries: appliedFiles.map((filePath) => `update: ${filePath}`),
+				appliedFiles,
+				failures: [
+					{
+						filePath: "broken.txt",
+						operation: "update",
+						message: "Failed to find expected lines in broken.txt:\nmissing",
+						code: undefined,
+					},
+				],
+				hasPartialSuccess: contents.length > 0,
+				recoveryInstructions: {
+					mustReadFiles: ["broken.txt"],
+					mustNotReadFiles: appliedFiles,
+					failedFiles: ["broken.txt"],
+				},
+				details: { fuzz },
+			});
+			for (const filePath of appliedFiles) {
+				expect(await readFile(path.join(directory, filePath), "utf-8")).toBe("after\n");
+			}
+			expect(await readFile(path.join(directory, "broken.txt"), "utf-8")).toBe("partial   \nline\n");
+			expect(await readFile(path.join(directory, "later.txt"), "utf-8")).toBe("before\n");
+		},
+	);
 
 	it("#given fuzzy matches across hunks #when applying detailed #then aggregates fuzz score", async () => {
 		// given

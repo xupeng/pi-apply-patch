@@ -1263,11 +1263,13 @@ export async function applyPatch(cwd: string, patchText: string): Promise<string
 
 	const summaries: string[] = [];
 	const appliedFiles: string[] = [];
+	let fuzz = 0;
 	for (const hunk of hunks) {
 		try {
-			const { summary, appliedFile } = await applySingleHunk(cwd, hunk);
+			const { summary, appliedFile, fuzz: hunkFuzz } = await applySingleHunk(cwd, hunk);
 			summaries.push(summary);
 			appliedFiles.push(appliedFile);
+			fuzz += hunkFuzz;
 		} catch (error) {
 			const message = error instanceof Error ? error.message : String(error);
 			const code =
@@ -1284,7 +1286,7 @@ export async function applyPatch(cwd: string, patchText: string): Promise<string
 					appliedFiles,
 					failures: [failure],
 				}),
-				details: { fuzz: 0 },
+				details: { fuzz },
 			};
 			throw new ApplyPatchError(message, result);
 		}

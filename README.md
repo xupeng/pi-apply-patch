@@ -71,6 +71,8 @@ After installation, restart pi or run `/reload` inside an interactive session.
 
 ## Development
 
+The exported `applyPatch()` compatibility API returns `string[]` summaries on success and throws `ApplyPatchError` on the first failed hunk. Its attached result preserves fuzz from successful hunks and already-applied changes; failed hunks contribute no fuzz.
+
 ```bash
 npm install
 npm test

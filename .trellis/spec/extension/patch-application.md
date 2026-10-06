@@ -53,7 +53,7 @@ Test coverage: `#given empty codex patch #when applying #then throws typed parse
 
 The loop tries tier `0` for every position before tier `1`, and so on, so an exact match late in the file beats a fuzzy match early in the file. The fuzz value is the tier that produced the match; `replaceChunks` sums it into `ApplyPatchResult.details.fuzz`.
 
-Tests: `#given codex patch with fuzzy context #when executed #then matches like codex` (typographic quotes), `#given codex patch with end-of-file marker #when executed #then only matches file ending`, `#given fuzzy matches across hunks #when applying detailed #then aggregates fuzz score` (asserts `details.fuzz === 10001`, i.e. `100` + `10000` from the two hunks).
+Tests: `#given codex patch with fuzzy context #when executed #then matches like codex` (typographic quotes), `#given codex patch with end-of-file marker #when executed #then only matches file ending`, `#given fuzzy matches across hunks #when applying detailed #then aggregates fuzz score` (asserts `details.fuzz === 10001`, i.e. `1` + `10000` from the two hunks).
 
 ---
 
@@ -82,7 +82,9 @@ Tests: `#given missing codex context #when executed #then reports expected lines
 - **update without move** — `readFile(absolutePath, "utf-8")`, then `replaceChunks` (or identity when there are no chunks), then `writeFileAtomic(absolutePath, nextContent)`. Summary `update: <path>`.
 - **update with move** — computes the new content, `mkdir`s the destination directory, `writeFileAtomic`s the destination, removes the source when the destination differs, and reports `move: <source> -> <dest>` with `appliedFile` set to the destination.
 
-`applyParsedPatchDetailed(cwd, hunks, onProgress)` loops over hunks, catches per-hunk errors into `ApplyPatchFailure` records, accumulates `details.fuzz`, and calls `notifyApplyPatchProgress` after each hunk. `applyPatch(cwd, patchText)` is the fail-fast compatibility API: the first hunk failure throws `ApplyPatchError` with the partial `ApplyPatchResult` attached, and files already written before the failure stay written.
+`applyParsedPatchDetailed(cwd, hunks, onProgress)` loops over hunks, catches per-hunk errors into `ApplyPatchFailure` records, accumulates `details.fuzz`, and calls `notifyApplyPatchProgress` after each hunk. `applyPatch(cwd, patchText)` is the fail-fast compatibility API: the first hunk failure throws `ApplyPatchError` with the partial `ApplyPatchResult` attached, and files already written before the failure stay written. The attached `details.fuzz` sums only successfully applied hunks, just like `applyPatchDetailed`; a failed hunk contributes nothing even if some of its chunks matched fuzzily. Later hunks are not executed, and successful calls still return `string[]` summaries.
+
+Regression coverage: `#given $name before failure #when applying compat api #then preserves successful fuzz` checks zero, one, and multiple successful hunks, excludes fuzz from the failed hunk, and asserts persisted changes, fail-fast behavior, and unchanged recovery instructions.
 
 Tests: `#given codex multi operation freeform patch #when executed #then applies all operations`, `#given rename-only codex patch #when executed #then moves file without changing content`, `#given parent traversal path #when applying patch #then applies outside cwd`, `#given absolute path outside cwd #when applying patch #then applies outside cwd`, `#given symlink escaping cwd #when executed #then applies patch`.
 

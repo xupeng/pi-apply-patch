@@ -72,7 +72,7 @@ It throws in exactly two places:
 
 It does **not** throw when hunks fail during application. `applyParsedPatchDetailed` catches each hunk error, records it in `failures`, and `execute` returns a normal `AgentToolResult` whose text starts with `"apply_patch failed."` or `"apply_patch partially failed."` and whose `details.result` holds the full `ApplyPatchResult`. This is intentional: the model must see the failure and the recovery instructions as tool output, not as a transport error.
 
-The compatibility API `applyPatch(cwd, patchText)` behaves differently on purpose: it throws `ApplyPatchError` on the first hunk failure, attaching the partial result, and it reports `details.fuzz` as `0` because it does not aggregate fuzz. Use `applyPatchDetailed` when you need per-hunk outcomes.
+The compatibility API `applyPatch(cwd, patchText)` behaves differently on purpose: it throws `ApplyPatchError` on the first hunk failure, attaching the partial result, with `details.fuzz` equal to the accumulated fuzz of successfully applied hunks before that failure. Failed hunks contribute no fuzz, even if an earlier chunk within the failed hunk matched fuzzily; no successful hunks or only exact-match successes produce `0`. Use `applyPatchDetailed` when you need per-hunk outcomes.
 
 Tests: `#given empty codex patch #when applying #then throws typed parse error`, `#given invalid codex hunk header #when executed #then reports parser diagnostic`, `#given missing codex context #when executed #then reports expected lines`, `#given apply patch tool partial failure #when executed #then returns recovery instructions text`, `#given apply patch tool complete failure #when executed #then does not report partial failure`.
 

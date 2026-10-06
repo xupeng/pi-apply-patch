@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- Preserve fuzz accumulated from successful hunks in `applyPatch()` failure results.
+
 ### Added
 
 - Initial standalone `apply_patch` pi extension.
